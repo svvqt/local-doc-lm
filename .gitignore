@@ -1,0 +1,7 @@
+venv
+*.pdf
+test.txt
+my_db
+.env
+__pycache__
+*.log
