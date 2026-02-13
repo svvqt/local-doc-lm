@@ -1,20 +1,22 @@
 import sys
+import asyncio
 import os
 import pymupdf
-from ollama import chat, ChatResponse, embed
+from ollama import chat, ChatResponse, embed, AsyncClient
 from test_chroma import client, child_col, parents_col
 from dotenv import load_dotenv
 from pathlib import Path
+from local import locale
 
 load_dotenv()
 
-def test_use_model(user_promt, content: str, history):
+def test_use_model(user_prompt, content: str, history):
     """
     func for chat with model
     
     Parameters
     ----------
-    user_promt: str
+    user_prompt: str
         instruction of user
     content: str
         text from documents
@@ -27,22 +29,19 @@ def test_use_model(user_promt, content: str, history):
     """
     
     system_instruction = (
-        "Ты — аналитик. Твоя задача — отвечать на вопросы по фрагментам документов. "
-        "Фрагменты могут быть вырваны из контекста, это нормально. "
-        "Если в тексте совсем нет информации по теме, ответь 'Информация не найдена'."
+        locale.get("prompt.system_prompt")
     )
-    promt = f"""
-    <user_promt>
-    {user_promt}
-    </user_promt>
+    prompt = f"""
+    <user_prompt>
+    {user_prompt}
+    </user_prompt>
     <document_content>
     {content}
     </document_content>
-
-    ИНСТРУКЦИЯ: На основе фрагментов в <document_content> ответь на запрос в <user_promt>. Отвечай сразу по существу..
     """
+    prompt += locale.get("prompt.system_instruction")
 
-    message = [{'role': 'system', 'content': system_instruction}] + history + [{'role': 'user', 'content': promt}]
+    message = [{'role': 'system', 'content': system_instruction}] + history + [{'role': 'user', 'content': prompt}]
     response: ChatResponse = chat(model=os.getenv("MODEL"), messages=message,
     options={
         'temperature': 0.1,
@@ -115,7 +114,7 @@ def read_file_pdf(filename: str) -> str:
     return content
 
 
-def embedding_text(filename: str, content: str):
+async def embedding_text(filename: str, content: str):
     """
     Vectorizing our text and embedding him to ChromaDB
 
@@ -130,6 +129,7 @@ def embedding_text(filename: str, content: str):
     -------
     text about finish and how much chuncks we added to our child collection: str 
     """
+    client = AsyncClient()
     chunk_size = int(os.getenv("CHUNK_SIZE"))
     overlap = int(os.getenv("OVERLAP"))
     chunks = []
@@ -153,18 +153,20 @@ def embedding_text(filename: str, content: str):
     for i in range(0, len(content), chunk_size-overlap):
         chunks.append(content[i: i + chunk_size])
 
-    # проходимся по нашим чанкам и добавляем их в коллекцию
-    for i, chunk in enumerate(chunks):
-        emb_response = embed(model=os.getenv("EMBEDDING_MODEL"), input=chunk)
-        vector = emb_response['embeddings'][0]
+    tasks = [client.embed(model="mxbai-embed-large", input=chunk) for chunk in chunks]
+    
+    # gather соберет все результаты, когда они будут готовы
+    responses = await asyncio.gather(*tasks)
 
+    for i, emb_response in enumerate(responses):
+        vector = emb_response['embeddings'][0]
         child_col.add(
-            documents=[chunk],
+            documents=[chunks[i]],
             embeddings=[vector],
             ids=f"{filename}_{i}",
             metadatas=[{"source": f"{filename}"}]
         )
-    return f"Загружено {len(chunks)} фрагментов текста"
+    print (f"Загружено {len(chunks)} фрагментов текста")
         
 def finding_the_text(prompt: str) -> str:
     """
@@ -211,3 +213,19 @@ def summarize_the_text(filename: str):
         )
         all_res.append(res['message']['content'])
     return "\n".join(all_res)
+
+def delete_the_doc(filename: str):
+    
+    try:
+        exist = parents_col.get(where={'source': filename})
+        if len(exist.get('ids', [])) == 0:
+            print(f'{filename} не найден')
+            return False
+        
+        parents_col.delete(where={'source': filename})
+        child_col.delete(where={'source': filename})
+
+        print(f'{filename} успешно удален из БД')
+
+    except Exception as e:
+        print(f'Ошибка при удалении: {e}')

@@ -1,0 +1,28 @@
+{
+    "ru":{
+        "menu": {
+            "header": "--- ГЛАВНОЕ МЕНЮ ---",
+            "upload": "1. Загрузить файл",
+            "chat": "2. Открыть чат",
+            "delete": "3. Удалить файл",
+            "exit": "4. Выйти"
+        },
+        "prompt": {
+            "system_prompt": "Ты — аналитик. Твоя задача — отвечать на вопросы по фрагментам документов. Фрагменты могут быть вырваны из контекста, это нормально. Если в тексте совсем нет информации по теме, ответь 'Информация не найдена'.",
+            "system_instruction": "ИНСТРУКЦИЯ: На основе фрагментов в <document_content> ответь на запрос в <user_prompt>. Отвечай сразу по существу."
+        }
+    },
+    "eng":{
+        "menu": {
+            "header": "--- MAIN MENU ---",
+            "upload": "1. Upload a file",
+            "chat": "2. Open a chat",
+            "delete": "3. Delete a file",
+            "exit": "4. Exit"
+        },
+        "prompt": {
+            "system_prompt": "You are an analyst. Your task is to answer the questions based on document fragments. Fragments may be taken out of context, and that's okay. If the text contains no relevant information at all, answer 'Information not found.'",
+            "system_instruction": "INSTRUCTION: Based on the fragments in <document_content>, respond to the request in <user_prompt>. Respond immediately to the point."
+        }
+    }
+}
