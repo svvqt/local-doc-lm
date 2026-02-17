@@ -7,8 +7,11 @@ from test_chroma import client, child_col, parents_col
 from dotenv import load_dotenv
 from pathlib import Path
 from local import locale
+import time
 
 load_dotenv()
+
+debug = bool(os.getenv("DEBUG", False))
 
 def test_use_model(user_prompt, content: str, history):
     """
@@ -139,6 +142,7 @@ async def embedding_text(filename: str, content: str):
     if len(exist.get('ids', []))>0:
         return "Индексирование не нужно"
 
+    start_time = time.time()
     # пересказ нашего текста, и добавление его в родительскую коллекция
     res: ChatResponse = chat(model=os.getenv("MODEL"), messages=[{"role": "user", "content": f"Перескажи этот текст, одним предложением: {content}"}], options={"temperature": 0.1})
     emb_response = embed(model=os.getenv("EMBEDDING_MODEL"), input=res['message']['content'][:512])
@@ -166,6 +170,9 @@ async def embedding_text(filename: str, content: str):
             ids=f"{filename}_{i}",
             metadatas=[{"source": f"{filename}"}]
         )
+    end_time = time.time()
+    if debug:
+        print(f'Выполено за {end_time-start_time}')
     print (f"Загружено {len(chunks)} фрагментов текста")
         
 def finding_the_text(prompt: str) -> str:
