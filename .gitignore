@@ -5,3 +5,4 @@ my_db
 .env
 __pycache__
 *.log
+target

@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 from pathlib import Path
 from local import locale
 import time
+import rag_core
 
 load_dotenv()
 
@@ -149,27 +150,27 @@ async def embedding_text(filename: str, content: str):
     parents_col.add(
         documents=[res['message']['content']],
         embeddings=[emb_response['embeddings'][0]],
-        ids=f"parent_{filename}",
+        ids=[f"parent_{filename}"],
         metadatas=[{"source": f"{filename}", "type": "summary"}]
         )
 
     # проходимся по тексту разделяего на чанки с захлестом
-    for i in range(0, len(content), chunk_size-overlap):
-        chunks.append(content[i: i + chunk_size])
+    #for i in range(0, len(content), chunk_size-overlap):
+    #    chunks.append(content[i: i + chunk_size])
+
+    chunks = rag_core.chunk_text(content, chunk_size, overlap)
 
     tasks = [client.embed(model="mxbai-embed-large", input=chunk) for chunk in chunks]
     
     # gather соберет все результаты, когда они будут готовы
     responses = await asyncio.gather(*tasks)
 
-    for i, emb_response in enumerate(responses):
-        vector = emb_response['embeddings'][0]
-        child_col.add(
-            documents=[chunks[i]],
-            embeddings=[vector],
-            ids=f"{filename}_{i}",
-            metadatas=[{"source": f"{filename}"}]
-        )
+    child_col.add(
+        documents=chunks,
+        embeddings=[r['embeddings'][0] for r in responses],
+        ids=[f"{filename}_{i}" for i in range(len(chunks))],
+        metadatas=[{"source": filename} for _ in chunks]
+    )
     end_time = time.time()
     if debug:
         print(f'Выполено за {end_time-start_time}')
