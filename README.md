@@ -1,10 +1,11 @@
 # Local Document LM
-local document lm - ИИ агент для локального и приватного общения с вашими документами (RAG) на базе любой языковой модели, доступной в Ollama. На текущий момент поддерживается файлы форматов pdf и txt.
+Local Document LM - ИИ агент для локального и приватного общения с вашими документами (RAG) на базе любой языковой модели, доступной в Ollama. На текущий момент поддерживается файлы форматов pdf и txt.
  
 ## Стек
 LLM engine: ollama  
 Vector DB: ChromaDB  
-python 3.12+
+Python 3.12+  
+Rust
 
 ## Быстрый запуск
 Перед запуском убедитесь, что у вас установлен **ollama**, если нет то установите с [официального сайта](https://ollama.com/). 
@@ -15,12 +16,13 @@ cd local-doc-lm
 python -m venv venv
 source venv/Scripts/activate
 pip install -r requirements.txt
+maturin develop --release
 ```
 
 ## Настройка
 Переименуйте .env.example в .env и найстройте под себя
 ```bash
-CHUNK_SIZE=500
+CHUNK_SIZE=500 # Больше 512 не поддерживает
 OVERLAP=50
 MODEL=gemma3:latest
 EMBEDDING_MODEL=mxbai-embed-large
@@ -39,5 +41,7 @@ python main.py
 Удаление: Вы можете выбрать любой документ из базы и полностью удалить его и связанные с ним векторы.
 
 ## Планы
+- [ ] Перенос части кода на Rust, ради увеличенния производительности;  
 - [ ] Поддержка большего числа форматов файлов (docx, xlsx и т.д.);  
+- [ ] Сохранение сеансов;  
 - [ ] Графический интерфейс.
